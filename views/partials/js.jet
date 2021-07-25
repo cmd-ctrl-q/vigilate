@@ -1,0 +1,38 @@
+<script src="/static/admin/js/pusher.min.js"></script>
+<script>
+
+    // connect to pusher server 
+    // on every page the user is authenticated, 
+    // create pusher variable.
+    // get pusher key from PreferenceMap which is inside the session.
+    let pusher = new Pusher("{{.PreferenceMap["pusher-key"]}}", {
+        authEndPoint: "/pusher/auth",
+        wsHost: "localhost",
+        wsPort: 4001, 
+        forceTLS: false, 
+        enabledTransports: ["ws", "wss"],
+        disabledTransports: [],
+    });
+
+    // subscribe to server 
+    let publicChannel = pusher.subscribe("public-channel");
+
+    // look for events
+    publicChannel.bind("test-event", function(data) {
+        successAlert(data.message);
+    })
+
+    let attention = Prompt();
+
+    {{if .Flash != ""}}
+        successAlert('{{.Flash}}')
+    {{end}}
+
+    {{if .Warning != ""}}
+        warningAlert('{{.Warning}}')
+    {{end}}
+
+    {{if .Error != ""}}
+        errorAlert('{{.Error}}')
+    {{end}}
+</script>
