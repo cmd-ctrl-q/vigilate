@@ -165,36 +165,51 @@ func (repo *DBRepo) PostHost(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 
 	var h models.Host
-	var hostID int
 
 	if id > 0 {
 		// get host from database
-	} else {
-		// NOTE: shoud do form validation for these
-		// get host name from request
-		h.HostName = r.Form.Get("host_name")
-		h.CanonicalName = r.Form.Get("canonical_name")
-		h.URL = r.Form.Get("url")
-		h.IP = r.Form.Get("ip")
-		h.IPV6 = r.Form.Get("ipv6")
-		h.Location = r.Form.Get("location")
-		h.OS = r.Form.Get("os")
-		active, _ := strconv.Atoi(r.Form.Get("active"))
-		h.Active = active
+		host, err := repo.DB.GetHostByID(id)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		h = host
+	}
 
+	// NOTE: shoud do form validation for these
+	// get host name from request
+	h.HostName = r.Form.Get("host_name")
+	h.CanonicalName = r.Form.Get("canonical_name")
+	h.URL = r.Form.Get("url")
+	h.IP = r.Form.Get("ip")
+	h.IPV6 = r.Form.Get("ipv6")
+	h.Location = r.Form.Get("location")
+	h.OS = r.Form.Get("os")
+	active, _ := strconv.Atoi(r.Form.Get("active"))
+	h.Active = active
+
+	if id > 0 {
+		// update host
+		err := repo.DB.UpdateHost(h)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	} else {
+		// insert host
 		newID, err := repo.DB.InsertHost(h)
 		if err != nil {
 			log.Println(err)
 			helpers.ServerError(w, r, err)
 			return
 		}
-		hostID = newID
+		h.ID = newID
 	}
 
 	// return a flash for success
 	repo.App.Session.Put(r.Context(), "flash", "Changes saved")
 	// redirect back to host page
-	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", hostID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", h.ID), http.StatusSeeOther)
 }
 
 // AllUsers lists all admin users

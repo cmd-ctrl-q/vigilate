@@ -6,4 +6,4 @@ run.bat
 vigilate
 .DS_Store
 *.code-workspace
-./HOWTO.md
+HOWTO.md
