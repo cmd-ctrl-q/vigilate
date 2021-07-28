@@ -134,30 +134,58 @@ Host
                         <a class="btn btn-info" href="/admin/host/all">Cancel</a>
                     </div>
                 </div>
-
-                <!-- ignore these tabs if new host -->
-                {{if host.ID > 0}}
-                <div class="tab-pane fade" role="tabpanel" aria-labelledby="services-tab" id="services-content">
-                    Serivces Content
-                </div>
-
-                <div class="tab-pane fade" role="tabpanel" aria-labelledby="healthy-tab" id="healthy-content">
-                    Healthy Content
-                </div>
-
-                <div class="tab-pane fade" role="tabpanel" aria-labelledby="warning-tab" id="warning-content">
-                    Warning Content
-                </div>
-
-                <div class="tab-pane fade" role="tabpanel" aria-labelledby="problem-tab" id="problem-content">
-                    Problem Content
-                </div>
-
-                <div class="tab-pane fade" role="tabpanel" aria-labelledby="pending-tab" id="pending-content">
-                    Pending Content
-                </div>
-                {{end}}
             </div>
+
+            <!-- ignore these tabs if new host -->
+            {{if host.ID > 0}}
+            <div class="tab-pane fade" role="tabpanel" aria-labelledby="services-tab" id="services-content">
+                <div class="row">
+                    <div class="col">
+                        <h3 class="mt-3">Services</h3>
+
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Status</th>
+                                </tr>
+                            <thead>
+                            <tbody>
+                                <tr>
+                                    <td>HTTP</td>
+                                    <td>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" value="1" type="checkbox" 
+                                            id="http_service" 
+                                            data-type="toggle-service"
+                                            data-service="1"
+                                            data-host-id="{{host.ID}}"
+                                            name="http_service">
+                                            <label class="form-check-label" for="active">Active</label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" role="tabpanel" aria-labelledby="healthy-tab" id="healthy-content">
+                Healthy Content
+            </div>
+            <div class="tab-pane fade" role="tabpanel" aria-labelledby="warning-tab" id="warning-content">
+                Warning Content
+            </div>
+
+            <div class="tab-pane fade" role="tabpanel" aria-labelledby="problem-tab" id="problem-content">
+                Problem Content
+            </div>
+
+            <div class="tab-pane fade" role="tabpanel" aria-labelledby="pending-tab" id="pending-content">
+                Pending Content
+            </div>
+            {{end}}
         </form>
     </div>
 </div>
@@ -166,6 +194,44 @@ Host
 
 {{ block js() }}
     <script>
+
+        // fire when page is finished loaded
+        document.addEventListener("DOMContentLoaded", function() {
+            // get reference to all of the services
+            // get all tags with the attribute data-service
+            let toggles = document.querySelectorAll("[data-service]"); 
+
+            for (let i = 0; i < toggles.length; i++) {
+                //console.log("Host:", toggles[i].getAttribute("data-host-id"));
+
+                // fire a function on change of toggle 
+                toggles[i].addEventListener("change", function() {
+                    let active = "1";
+                    if (!this.checked) {
+                        active = "0";
+                    } 
+
+                    // add data to formData
+                    let formData = new FormData();
+                    formData.append("host_id", this.getAttribute("data-host-id"));
+                    formData.append("service_id", this.getAttribute("data-service"));
+                    formData.append("active", active); 
+                    formData.append("csrf_token", "{{.CSRFToken}}"); 
+
+                    // fire off ajax request using fetch 
+                    fetch("/admin/host/ajax/toggle-service", {
+                        method: "POST",
+                        body: formData, 
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Called ajax");
+                        console.log("OK is", data.ok);
+                    })
+                })
+            }
+        })
+
         function val() {
             document.getElementById("action").value = 0;
             let form = document.getElementById("host-form");
