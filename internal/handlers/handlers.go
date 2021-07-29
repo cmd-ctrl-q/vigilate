@@ -50,7 +50,16 @@ func (repo *DBRepo) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	vars.Set("no_pending", 0)
 	vars.Set("no_warning", 0)
 
-	err := helpers.RenderPage(w, r, "dashboard", vars, nil)
+	// get hosts
+	allHosts, err := repo.DB.AllHosts()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("allHosts():", allHosts)
+	vars.Set("hosts", allHosts)
+
+	err = helpers.RenderPage(w, r, "dashboard", vars, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
@@ -378,6 +387,9 @@ func (repo *DBRepo) ToggleServiceForHost(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	var resp serviceJSON
+	resp.OK = true
+
 	// get values from form
 	hostID, _ := strconv.Atoi(r.Form.Get("host_id"))
 	serviceID, _ := strconv.Atoi(r.Form.Get("service_id"))
@@ -385,8 +397,12 @@ func (repo *DBRepo) ToggleServiceForHost(w http.ResponseWriter, r *http.Request)
 
 	log.Println("DATA:", hostID, serviceID, active)
 
-	var resp serviceJSON
-	resp.OK = true
+	err = repo.DB.UpdateHostServiceStatus(hostID, serviceID, active)
+	if err != nil {
+		log.Println(err)
+		// set response to
+		resp.OK = false
+	}
 
 	// send back json response
 	out, _ := json.MarshalIndent(resp, "", "    ")
