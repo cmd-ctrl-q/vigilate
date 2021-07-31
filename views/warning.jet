@@ -35,7 +35,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr>
+                {{if len(services) > 0}}
                     {{range services}}
                         <tr>
                             <td>
@@ -48,7 +48,11 @@
                             <td></td>
                         </tr>
                     {{end}}
-                </tr>
+                {{else}}
+                    <tr>
+                        <td colspan="4">No services</td>
+                    </tr>
+                {{end}}
                 </tbody>
             </table>
         </div>

@@ -2,7 +2,9 @@
 
 {{block css()}}
 <style>
-
+.pointer {
+    cursor: pointer;
+}
 </style>
 {{end}}
 
@@ -193,18 +195,162 @@ Host
             </div>
 
             <div class="tab-pane fade" role="tabpanel" aria-labelledby="healthy-tab" id="healthy-content">
-                Healthy Content
+                <div class="row">
+                    <div class="col">
+                        <h3 class="mt-3">Healthy Services</h3>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Last Check</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{range host.HostServices}}
+                                    {{if .Status == "healthy"}}
+                                        <tr>
+                                            <td>
+                                                <span class="{{.Service.Icon}}"></span>
+                                                {{.Service.ServiceName}}
+                                                <span class="badge bg-secondary" onclick="checkNow({{.ID}})">
+                                                    Check now
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {{if dateAfterYearOne(.LastCheck)}}
+                                                    {{dateFromLayout(.LastCheck, "2006-01-02 15:04")}}
+                                                {{else}}
+                                                    Pending... <!-- change with websockets -->
+                                                {{end}}
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    {{end}}
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             <div class="tab-pane fade" role="tabpanel" aria-labelledby="warning-tab" id="warning-content">
-                Warning Content
+                <div class="row">
+                    <div class="col">
+                        <h3 class="mt-3">Warning Services</h3>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Last Check</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{range host.HostServices}}
+                                    {{if .Status == "warning"}}
+                                        <tr>
+                                            <td>
+                                                <span class="{{.Service.Icon}}"></span>
+                                                {{.Service.ServiceName}}
+                                                <span class="badge bg-secondary" onclick="checkNow({{.ID}})">
+                                                    Check now
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {{if dateAfterYearOne(.LastCheck)}}
+                                                    {{dateFromLayout(.LastCheck, "2006-01-02 15:04")}}
+                                                {{else}}
+                                                    Pending... <!-- change with websockets -->
+                                                {{end}}
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    {{end}}
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div class="tab-pane fade" role="tabpanel" aria-labelledby="problem-tab" id="problem-content">
-                Problem Content
+                <div class="row">
+                    <div class="col">
+                        <h3 class="mt-3">Problem Services</h3>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Last Check</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{range host.HostServices}}
+                                    {{if .Status == "problem"}}
+                                        <tr>
+                                            <td>
+                                                <span class="{{.Service.Icon}}"></span>
+                                                {{.Service.ServiceName}}
+                                                <span class="badge bg-secondary" onclick="checkNow({{.ID}})">
+                                                    Check now
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {{if dateAfterYearOne(.LastCheck)}}
+                                                    {{dateFromLayout(.LastCheck, "2006-01-02 15:04")}}
+                                                {{else}}
+                                                    Pending... <!-- change with websockets -->
+                                                {{end}}
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    {{end}}
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div class="tab-pane fade" role="tabpanel" aria-labelledby="pending-tab" id="pending-content">
-                Pending Content
+                <div class="row">
+                    <div class="col">
+                        <h3 class="mt-3">Pending Services</h3>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Last Check</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{range host.HostServices}}
+                                    {{if .Status == "pending"}}
+                                        <tr>
+                                            <td>
+                                                <span class="{{.Service.Icon}}"></span>
+                                                {{.Service.ServiceName}}
+                                                <span class="badge bg-secondary pointer" onclick="checkNow({{.ID}}, 'pending')">
+                                                    Check now
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {{if dateAfterYearOne(.LastCheck)}}
+                                                    {{dateFromLayout(.LastCheck, "2006-01-02 15:04")}}
+                                                {{else}}
+                                                    Pending... <!-- change with websockets -->
+                                                {{end}}
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    {{end}}
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             {{end}}
         </form>
@@ -285,6 +431,36 @@ Host
             if (form.checkValidity() === true) {
                 form.submit();
             }
+        }
+
+        function checkNow(id, oldStatus) {
+            console.log("Clicked Check now");
+
+            fetch('/admin/perform-check/' + id + '/' + oldStatus)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("OK:", data.ok, "\nmessage:", data.message); 
+
+                    if (data.ok) {
+                        if (data.old_status !== data.new_status) {
+                            attention.toast({
+                                msg: data.message, 
+                                icon: 'info',
+                                timer: 60000,
+                                showCloseButton: true, 
+                            })
+                        } else {
+                            attention.toast({
+                                msg: "Service is still in " + data.new_status + " state", 
+                                icon: 'info',
+                                timer: 5000,
+                                showCloseButton: true, 
+                            })                  
+                        }
+                    } else {
+                        errorAlert("Something went wrong");
+                    }
+                });
         }
     </script>
 {{end}}
