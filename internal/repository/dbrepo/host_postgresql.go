@@ -314,6 +314,40 @@ func (m *postgresDBRepo) UpdateHostServiceStatus(hostID, serviceID, active int) 
 	return nil
 }
 
+// UpdateHostService updates a host service in the database
+func (m *postgresDBRepo) UpdateHostService(hs models.HostService) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	stmt := `
+		update 
+			host_services set 
+				host_id = $1, service_id = $2, active = $3, 
+				schedule_number = $4, schedule_unit = $5, 
+				last_check = $6, status = $7, updated_at = $8
+		where 
+			id = $9
+	`
+
+	_, err := m.DB.ExecContext(ctx, stmt,
+		hs.HostID,
+		hs.ServiceID,
+		hs.Active,
+		hs.ScheduleNumber,
+		hs.ScheduleUnit,
+		hs.LastCheck,
+		hs.Status,
+		hs.UpdatedAt,
+		hs.ID,
+	)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
 func (m *postgresDBRepo) GetServicesByStatus(status string) ([]models.HostService, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -368,4 +402,51 @@ func (m *postgresDBRepo) GetServicesByStatus(status string) ([]models.HostServic
 
 	return services, nil
 
+}
+
+func (m *postgresDBRepo) GetHostServiceByID(id int) (models.HostService, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		select
+			hs.id, hs.host_id, hs.service_id, hs.active, hs.schedule_number,
+			hs.schedule_unit, hs.last_check, hs.status, hs.created_at, hs.updated_at,
+			s.id, s.service_name, s.active, s.icon, s.created_at, s.updated_at
+
+		from host_services hs 
+		left join services s on (hs.service_id = s.id)
+
+		where hs.id = $1
+	`
+
+	var hs models.HostService
+
+	row := m.DB.QueryRowContext(ctx, query, id)
+
+	// scan into hs
+	err := row.Scan(
+		&hs.ID,
+		&hs.HostID,
+		&hs.ServiceID,
+		&hs.Active,
+		&hs.ScheduleNumber,
+		&hs.ScheduleUnit,
+		&hs.LastCheck,
+		&hs.Status,
+		&hs.CreatedAt,
+		&hs.UpdatedAt,
+		&hs.Service.ID,
+		&hs.Service.ServiceName,
+		&hs.Service.Active,
+		&hs.Service.Icon,
+		&hs.Service.CreatedAt,
+		&hs.Service.UpdatedAt,
+	)
+	if err != nil {
+		log.Println(err)
+		return hs, err
+	}
+
+	return hs, nil
 }
