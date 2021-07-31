@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,7 +19,7 @@ func (repo *DBRepo) PusherAuth(w http.ResponseWriter, r *http.Request) {
 	u, _ := repo.DB.GetUserById(userID)
 
 	// authenticate to pusher
-	params, _ := ioutil.ReadAll(r.Body)
+	params, _ := io.ReadAll(r.Body)
 
 	// create type used by pusher client
 	// member info used to connect them to pusher server.
