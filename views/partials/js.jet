@@ -35,4 +35,24 @@
     {{if .Error != ""}}
         errorAlert('{{.Error}}')
     {{end}}
+
+    document.getElementById("monitoring-live").addEventListener("change", function() {
+        let enabled = document.getElementById("monitoring-live").checked;
+        if (!enabled) {
+            // send user a confirmation that monitoring is off
+            attention.confirm({
+                html: "This will stop monitoring of all hosts and services. Are you sure?",
+                callback: function(result) {
+                    if (result) {
+                        // want to turn monitoring off
+                        console.log("Would turn monitoring off");
+                    } else {
+                        document.getElementById("monitoring-live").checked = true;
+                    }
+                },
+            })
+        } else {
+        
+        }
+    })
 </script>
