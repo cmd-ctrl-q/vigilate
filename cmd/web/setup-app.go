@@ -141,6 +141,9 @@ func setupApp() (*string, error) {
 
 	app.WsClient = wsClient
 
+	monitorMap := make(map[int]cron.EntryID)
+	app.MonitorMap = monitorMap
+
 	// create scheduler
 	localZone, _ := time.LoadLocation("Local")
 	// create new cron job with the local timezone,
@@ -151,8 +154,10 @@ func setupApp() (*string, error) {
 	))
 	// store in app config
 	app.Scheduler = scheduler
-
 	// run scheduler
+	app.Scheduler.Start()
+
+	startMonitoring()
 
 	helpers.NewHelpers(&app)
 
