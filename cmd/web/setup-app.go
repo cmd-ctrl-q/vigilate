@@ -11,6 +11,7 @@ import (
 	"github.com/alexedwards/scs/postgresstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/pusher/pusher-http-go"
+	"github.com/robfig/cron/v3"
 	"github.com/tsawler/vigilate/internal/channeldata"
 	"github.com/tsawler/vigilate/internal/config"
 	"github.com/tsawler/vigilate/internal/driver"
@@ -139,6 +140,19 @@ func setupApp() (*string, error) {
 	log.Println("Secure", *pusherSecure)
 
 	app.WsClient = wsClient
+
+	// create scheduler
+	localZone, _ := time.LoadLocation("Local")
+	// create new cron job with the local timezone,
+	// Chain are things that take place in the job.
+	scheduler := cron.New(cron.WithLocation(localZone), cron.WithChain(
+		cron.DelayIfStillRunning(cron.DefaultLogger), // prevent overlapping tasks
+		cron.Recover(cron.DefaultLogger),             // if a job dies, recover
+	))
+	// store in app config
+	app.Scheduler = scheduler
+
+	// run scheduler
 
 	helpers.NewHelpers(&app)
 
