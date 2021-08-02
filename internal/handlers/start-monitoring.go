@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"fmt"
@@ -13,12 +13,13 @@ type job struct {
 
 // Run runs a schedule check
 func (j job) Run() {
-	repo.ScheduledCheck(j.HostServiceID)
+	Repo.ScheduledCheck(j.HostServiceID)
 }
 
-func startMonitoring() {
+// StartMonitoring starts the monitoring process
+func (repo *DBRepo) StartMonitoring() {
 	// monitor jobs if set to 1
-	if preferenceMap["monitoring_live"] == "1" {
+	if app.PreferenceMap["monitoring_live"] == "1" {
 		log.Println("**************** starting monitor *************")
 		// trigger a message to broadcast to all clients that the app is starting to monitor.
 		// sends a message to every client thats connected to the service/website.

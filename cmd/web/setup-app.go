@@ -154,10 +154,9 @@ func setupApp() (*string, error) {
 	))
 	// store in app config
 	app.Scheduler = scheduler
-	// run scheduler
-	app.Scheduler.Start()
 
-	startMonitoring()
+	// runs in the background so app will start a little faster.
+	go handlers.Repo.StartMonitoring()
 
 	helpers.NewHelpers(&app)
 
