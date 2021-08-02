@@ -36,23 +36,97 @@
         errorAlert('{{.Error}}')
     {{end}}
 
-    document.getElementById("monitoring-live").addEventListener("change", function() {
-        let enabled = document.getElementById("monitoring-live").checked;
-        if (!enabled) {
-            // send user a confirmation that monitoring is off
-            attention.confirm({
-                html: "This will stop monitoring of all hosts and services. Are you sure?",
-                callback: function(result) {
-                    if (result) {
-                        // want to turn monitoring off
-                        console.log("Would turn monitoring off");
-                    } else {
-                        document.getElementById("monitoring-live").checked = true;
-                    }
-                },
+        document.addEventListener("DOMContentLoaded", function () {
+        let tabMap = new Map();
+        let tabs = document.querySelectorAll('[data-toggle="tab"]');
+        let i = 0;
+        Array.prototype.filter.call(tabs, function (el) {
+            el.addEventListener("click", function () {
+                history.pushState("", document.title, window.location.pathname);
+                localStorage.setItem('activeTab', el.getAttribute("data-target"));
             })
+
+            tabMap.set(el.getAttribute("href"), i);
+            i++;
+        });
+
+        if (!window.location.hash) {
+            let activeTab = localStorage.getItem('activeTab');
+            if (activeTab) {
+                document.querySelectorAll('[data-toggle="tab"]')[activeTab].Tab.show()
+            }
         } else {
-        
+            if (tabMap.has(window.location.hash)) {
+                document.querySelectorAll('[data-toggle="tab"]')[tabMap.get(window.location.hash)].Tab.show()
+            }
         }
+
+        document.getElementById("monitoring-live").addEventListener("change", function() {
+            let enabled = document.getElementById("monitoring-live").checked;
+            if (!enabled) {
+                // send user a confirmation that monitoring is off
+                attention.confirm({
+                    html: "This will stop monitoring of all hosts and services. Are you sure?",
+                    callback: function(result) {
+                        if (result) {
+                            // want to turn monitoring off
+                            console.log("Would turn monitoring off");
+                            // set monitoring_live to 0 / off
+                            updateSystemPref("monitoring_live", "0")
+                            toggleMonitoring(false); // turn monitoring off
+                        } else {
+                            document.getElementById("monitoring-live").checked = true;
+                        }
+                    },
+                })
+            } else {
+                // set monitoring_live to "1" / on
+                updateSystemPref("monitoring_live", "1");
+                toggleMonitoring(1); // turn monitoring on 
+            }
+        })
     })
+
+    function updateSystemPref(prefName, prefValue) {
+        let formData = new FormData(); 
+        formData.append("pref_name", prefName);
+        formData.append("pref_value", prefValue);
+        formData.append("csrf_token", "{{.CSRFToken}}");
+        // create new xml http request 
+        let ajax = new XMLHttpRequest();
+        ajax.responseType = "json";
+        ajax.open("POST", "/admin/preference/ajax/set-system-pref");
+        // send form data 
+        ajax.send(formData);
+        // listen on change 
+        ajax.onreadystatechange = function() {
+            if (ajax.readyState === 4) {
+                let resp = ajax.response; 
+                if (!resp.ok) {
+                    errorAlert("Errors: " + resp.message);
+                }
+            }
+        }
+    }
+
+    function toggleMonitoring(enabled) {
+        let formData = new FormData(); 
+        formData.append("enabled", enabled);
+        formData.append("csrf_token", "{{.CSRFToken}}");
+        // create new xml http request 
+        let ajax = new XMLHttpRequest();
+        ajax.responseType = "json";
+        ajax.open("POST", "/admin/preference/ajax/toggle-monitoring");
+        // send form data 
+        ajax.send(formData);
+        // listen on change 
+        ajax.onreadystatechange = function() {
+            if (ajax.readyState === 4) {
+                let resp = ajax.response; 
+                if (!resp.ok) {
+                    errorAlert("Errors: " + resp.message);
+                }
+            }
+        }
+    }
 </script>
