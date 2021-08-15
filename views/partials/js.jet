@@ -18,9 +18,21 @@
     let publicChannel = pusher.subscribe("public-channel");
 
     // look for events
-    publicChannel.bind("test-event", function(data) {
+    publicChannel.bind("app-starting", function(data) {
         successAlert(data.message);
     })
+
+    publicChannel.bind("app-stopping", function(data) {
+        warningAlert(data.message);
+    })
+
+    // events to bind to - cases to look for
+    // - service goes down 
+    // - services comes up (problem services becomes helathy)
+    // - service status changed 
+    // - scheduled changed 
+    // - monitoring is turned off 
+    // - next-run-event changes
 
     let attention = Prompt();
 
