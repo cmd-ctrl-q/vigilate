@@ -20,7 +20,6 @@ func (j job) Run() {
 func (repo *DBRepo) StartMonitoring() {
 	// monitor jobs if set to 1
 	if app.PreferenceMap["monitoring_live"] == "1" {
-		log.Println("**************** starting monitor *************")
 		// trigger a message to broadcast to all clients that the app is starting to monitor.
 		// sends a message to every client thats connected to the service/website.
 		// payload to be sent to all connected clients via websockets (using pusher / ipe)
