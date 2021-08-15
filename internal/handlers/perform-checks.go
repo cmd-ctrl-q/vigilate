@@ -51,6 +51,16 @@ func (repo *DBRepo) ScheduledCheck(hostServiceID int) {
 	// test the service
 	newStatus, msg := repo.testServiceForHost(h, hs)
 
+	// if the host service has changed, broadcast to all clients
+	if newStatus != hs.Status {
+		data := make(map[string]string)
+		data["message"] = fmt.Sprintf("host service %s on %s has changed to %s", hs.Service.ServiceName, h.HostName, newStatus)
+		// broadcast a service
+		repo.broadcastMessage("public-channel", "host-service-status-changed", data)
+
+		// if appropriate, send email or sms message
+	}
+
 	// update host service record in the db with status (if changed) and
 	// update the last check
 	hs.Status = newStatus
@@ -62,11 +72,15 @@ func (repo *DBRepo) ScheduledCheck(hostServiceID int) {
 		return
 	}
 
-	// if the host service has changed, broadcast to all clients
-
-	// if appropriate, send email or sms message
-
 	log.Println("New status is", newStatus, "and msg is", msg)
+}
+
+func (repo *DBRepo) broadcastMessage(channel, messageType string, data map[string]string) {
+	err := app.WsClient.Trigger(channel, messageType, data)
+	if err != nil {
+		log.Println(err)
+	}
+
 }
 
 func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {

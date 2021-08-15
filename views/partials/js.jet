@@ -26,6 +26,10 @@
         warningAlert(data.message);
     })
 
+    publicChannel.bind("host-service-status-changed", function(data) {
+        successAlert(data.message);
+    })
+
     // events to bind to - cases to look for
     // - service goes down 
     // - services comes up (problem services becomes helathy)
