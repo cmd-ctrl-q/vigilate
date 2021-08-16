@@ -158,6 +158,12 @@ func setupApp() (*string, error) {
 	// runs in the background so app will start a little faster.
 	go handlers.Repo.StartMonitoring()
 
+	// check preference map
+	if app.PreferenceMap["monitoring_live"] == "1" {
+		// start the schedule
+		app.Scheduler.Start()
+	}
+
 	helpers.NewHelpers(&app)
 
 	return insecurePort, err
