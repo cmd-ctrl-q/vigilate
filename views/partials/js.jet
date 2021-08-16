@@ -27,8 +27,104 @@
     })
 
     publicChannel.bind("host-service-status-changed", function(data) {
-        successAlert(data.message);
+        //successAlert(data.message); 
+        attention.toast({
+            msg: data.message, 
+            icon: 'info', 
+            timer: 30000, 
+            showCloseButton: true, 
+        })
+
+        // delete from if it exists 
+        deleteHostServiceRow(data.host_service_id);
+
+       // add new table if exstis
+        updateHostServiceRow(data);
     })
+
+    function deleteHostServiceRow(hostServiceID) {
+
+        // remove existing table row if exists 
+        let exists = !!document.getElementById("host-service-" + hostServiceID); // does this element exist using !!
+        // somewhere on the currently open browser window, there exists and id with 'host-service-{id}'
+        if (exists) {
+            let row = document.getElementById("host-service-" + hostServiceID);
+            // go to element you just found, find its parent, and remove the child that matches the syntax
+            row.parentNode.removeChild(row);
+
+            // if this was the last row, add a "no services" row. 
+            // dont know which table might exist, so check them all.
+
+            // first, set up an array with the appropriate status names 
+            let tables = ["healthy", "pending", "warning", "problem"];
+
+            // use for loop so dont have to write four functions. 
+            for (let i = 0; i < tables.length; i++) {
+                // check to see if the <table> element exists by the id name
+                let currentTableExists = !!document.getElementById(tables[i] + "-table"); 
+                if (currentTableExists) {
+                    //the table element exists, so get a reference to it 
+                    let currentTable = document.getElementById(tables[i] + "-table"); 
+
+                    // if the number of rows in the table is one, the only row left is the header, 
+                    // so need to insert a "No services" row in the table body. 
+                    if (currentTable.rows.length === 1) {
+                        let newRow = currentTable.tBodies[0].insertRow(-1); 
+                        let newCell = newRow.insertCell(0); 
+                        newCell.setAttribute("colspan", "3"); 
+                        newCell.innerHTML = "No services"; 
+                    }
+                }
+            }
+        }
+    }
+
+    function updateHostServiceRow(data) {
+        let tableExists = document.getElementById(data.status + "-table");
+        if (tableExists) {
+            // add row to table 
+            console.log("Trying to add row to " + data.status + " table");
+            // get reference to table you want to update 
+            let tableRef = document.getElementById(data.status + "-table"); 
+
+            let tableContent = tableRef.innerHTML; 
+            // check if html table contains "No services" text
+            if (tableContent.includes("No services")) {
+                // a "No services" row exists, so delete it 
+                let rowCount = tableRef.rows.length; 
+                for (let i = rowCount - 1; i > 0; i--) {
+                    tableRef.deleteRow(i); 
+                }
+            }
+
+            // insert new row and give it correct id 
+            let newRow = tableRef.tBodies[0].insertRow(-1);
+
+            // set attributes for row 
+            newRow.setAttribute("id", "host-service-" + data.host_service_id);
+
+            // insert the first <td> 
+            let newCell = newRow.insertCell(0); // 0 is 1st position 
+            newCell.innerHTML = `
+                <span class="${data.icon}"></span> 
+                ${data.service_name}
+                <span class="badge bg-secondary pointer" onclick="checkNow(${data.host_service_id}, '${data.status}')">
+                    Check Now
+                </span>
+            `;
+
+            // insert second <td> 
+            newCell = newRow.insertCell(1); 
+            if (data.status !== "pending") {
+                newCell.innerHTML = `${data.last_check}`; 
+            } else {
+                newCell.innerHTML = "Pending...";
+            }
+
+            // insert third <td> 
+            newCell = newRow.insertCell(2); 
+        }
+    }
 
     publicChannel.bind("host-service-count-changed", function(data) {
         // update count containers 
