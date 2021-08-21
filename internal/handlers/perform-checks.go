@@ -179,18 +179,32 @@ func (repo *DBRepo) testServiceForHost(h models.Host, hs models.HostService) (ne
 	// broadcast to clients if appropriate
 	if hs.Status != newStatus {
 		// create payload
-		data := make(map[string]string)
-		data["host_id"] = strconv.Itoa(hs.HostID)
-		data["host_service_id"] = strconv.Itoa(hs.ID)
-		data["host_name"] = h.HostName
-		data["service_name"] = hs.Service.ServiceName
-		data["icon"] = hs.Service.Icon
-		data["status"] = newStatus
-		data["message"] = fmt.Sprintf("%s on %s reports %s", hs.Service.ServiceName, h.HostName, newStatus)
-		data["last_check"] = time.Now().Format("2006-01-02 3:04:06 PM")
-
-		repo.broadcastMessage("public-channel", "host-service-status-changed", data)
+		repo.pushStatusChangedEvent(h, hs, newStatus)
 	}
+
+	repo.pushScheduleChangedEvent(hs, newStatus)
+
+	// TODO - send email / sms if appropriate
+
+	// return msg, newStatus
+	return
+}
+
+func (repo *DBRepo) pushStatusChangedEvent(h models.Host, hs models.HostService, newStatus string) {
+	data := make(map[string]string)
+	data["host_id"] = strconv.Itoa(hs.HostID)
+	data["host_service_id"] = strconv.Itoa(hs.ID)
+	data["host_name"] = h.HostName
+	data["service_name"] = hs.Service.ServiceName
+	data["icon"] = hs.Service.Icon
+	data["status"] = newStatus
+	data["message"] = fmt.Sprintf("%s on %s reports %s", hs.Service.ServiceName, h.HostName, newStatus)
+	data["last_check"] = time.Now().Format("2006-01-02 3:04:06 PM")
+
+	repo.broadcastMessage("public-channel", "host-service-status-changed", data)
+}
+
+func (repo *DBRepo) pushScheduleChangedEvent(hs models.HostService, newStatus string) {
 
 	// broadcast schedule-changed-event
 	yearOne := time.Date(0001, 1, 1, 0, 0, 0, 1, time.UTC)
@@ -215,11 +229,6 @@ func (repo *DBRepo) testServiceForHost(h models.Host, hs models.HostService) (ne
 	data["icon"] = hs.Service.Icon
 
 	repo.broadcastMessage("public-channel", "schedule-changed-event", data)
-
-	// TODO - send email / sms if appropriate
-
-	// return msg, newStatus
-	return
 }
 
 func testHTTPForHost(url string) (string, string) {
@@ -241,4 +250,40 @@ func testHTTPForHost(url string) (string, string) {
 	}
 
 	return fmt.Sprintf("%s - %s", url, resp.Status), "healthy"
+}
+
+func (repo *DBRepo) addToMonitorMap(hs models.HostService) {
+	// dont make changes unless monitoring is on
+	if repo.App.PreferenceMap["monitoring_live"] == "1" {
+		var j job
+		j.HostServiceID = hs.ID
+		scheduleID, err := repo.App.Scheduler.AddJob(fmt.Sprintf("@every %d%s", hs.ScheduleNumber, hs.ScheduleUnit), j)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		// add to montior map
+		repo.App.MonitorMap[hs.ID] = scheduleID
+		data := make(map[string]string)
+		data["message"] = "scheduling"
+		data["host_service_id"] = strconv.Itoa(hs.ID)
+		data["next_run"] = "Pending..."
+		data["service"] = hs.Service.ServiceName
+		data["host"] = hs.HostName
+		data["last_run"] = hs.LastCheck.Format("2006-01-02 3:04:05 PM")
+		data["schedule"] = fmt.Sprintf("@every %d%s", hs.ScheduleNumber, hs.ScheduleUnit)
+
+		repo.broadcastMessage("public-channel", "schedule-changed-event", data)
+	}
+}
+
+func (repo *DBRepo) removeFromMonitorMap(hs models.HostService) {
+	if repo.App.PreferenceMap["monitoring_live"] == "1" {
+		repo.App.Scheduler.Remove(repo.App.MonitorMap[hs.ID])
+		data := make(map[string]string)
+		data["host_service_id"] = strconv.Itoa(hs.ID)
+
+		repo.broadcastMessage("public-channel", "schedule-item-removed-event", data)
+	}
 }

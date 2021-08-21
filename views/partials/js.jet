@@ -19,11 +19,17 @@
 
     // look for events
     publicChannel.bind("app-starting", function(data) {
+        let toggle = document.getElementById("monitoring-live");
+        // update monitoring toggle button 
+        toggle.checked = true;
         successAlert(data.message);
     })
 
     publicChannel.bind("app-stopping", function(data) {
         warningAlert(data.message);
+        let toggle = document.getElementById("monitoring-live");
+        // update the monitoring toggle button
+        toggle.checked = false;
 
         let scheduledTableExists = !!document.getElementById("schedule-table"); 
         if (scheduledTableExists) {
@@ -35,6 +41,26 @@
             newCell.setAttribute("colspan", "5"); 
             newCell.innerHTML = "No scheduled checks!"; 
         }
+    })
+
+    // fire anytime an item is removed from the schedule
+    publicChannel.bind("schedule-item-removed-event", function(data) {
+        // only execute if there is an item on the page with the id of schedule-{id} 
+        let rowExists = !!document.getElementById("schedule-" + data.host_service_id); 
+        if (rowExists) {
+            let row = document.getElementById("schedule-" + data.host_service_id); 
+            row.parentNode.removeChild(row);
+
+            // check if need to add a "no scheduled checks" row 
+            let currentTable = document.getElementById("schedule-table");
+            if (currentTable.rows.length === 1) {
+                let newRow = currentTable.tBodies[0].insertRow(-1); 
+                let newCell = newRow.insertCell(0); 
+                newCell.setAttribute("colspan", "5");
+                newCell.innerHTML = "No scheduled checks!";
+            }
+        }
+ 
     })
 
     publicChannel.bind("schedule-changed-event", function(data) {
@@ -54,7 +80,6 @@
 
             // delete existing row 
             let rowExists = !!document.getElementById("schedule-" + data.host_service_id); 
-            console.log("rowExists: ", rowExists);
             if (rowExists) {
                 let row = document.getElementById("schedule-" + data.host_service_id); 
                 row.parentNode.removeChild(row); // delete row if it already exists
@@ -262,7 +287,6 @@
                     callback: function(result) {
                         if (result) {
                             // want to turn monitoring off
-                            console.log("Would turn monitoring off");
                             // set monitoring_live to 0 / off
                             updateSystemPref("monitoring_live", "0")
                             toggleMonitoring(false); // turn monitoring off
