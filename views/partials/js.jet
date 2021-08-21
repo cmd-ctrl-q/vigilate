@@ -24,6 +24,17 @@
 
     publicChannel.bind("app-stopping", function(data) {
         warningAlert(data.message);
+
+        let scheduledTableExists = !!document.getElementById("schedule-table"); 
+        if (scheduledTableExists) {
+            let scheduleTable = document.getElementById("schedule-table"); 
+            scheduleTable.tBodies[0].innerHTML = ""; // emtpy html 
+
+            let newRow = scheduleTable.tBodies[0].insertRow(-1);
+            let newCell = newRow.insertCell(0); 
+            newCell.setAttribute("colspan", "5"); 
+            newCell.innerHTML = "No scheduled checks!"; 
+        }
     })
 
     publicChannel.bind("host-service-status-changed", function(data) {
