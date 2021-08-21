@@ -202,16 +202,16 @@ func (repo *DBRepo) testServiceForHost(h models.Host, hs models.HostService) (ne
 
 	// if the entry date is after year one, then its a valid date
 	if app.Scheduler.Entry(repo.App.MonitorMap[hs.ID]).Next.After(yearOne) {
-		data["next_run"] = repo.App.Scheduler.Entry(repo.App.MonitorMap[[hs.ID]]).Next.Format("2006-01-02 3:04:05 PM")
+		data["next_run"] = repo.App.Scheduler.Entry(repo.App.MonitorMap[hs.ID]).Next.Format("2006-01-02 3:04:05 PM")
 	} else {
-		// hasnt been scheduled yet 
+		// hasnt been scheduled yet
 		data["next_run"] = "Pending..."
 	}
-	data["last_run"] = time.Now() .Format("2006-01-02 3:04:05 PM")
-	data["host"] = hs.HostName 
+	data["last_run"] = time.Now().Format("2006-01-02 3:04:05 PM")
+	data["host"] = hs.HostName
 	data["service"] = hs.Service.ServiceName
 	data["schedule"] = fmt.Sprintf("@every %d%s", hs.ScheduleNumber, hs.ScheduleUnit)
-	data["status"] = newStatus 
+	data["status"] = newStatus
 	data["icon"] = hs.Service.Icon
 
 	repo.broadcastMessage("public-channel", "schedule-changed-event", data)
